@@ -1,0 +1,47 @@
+name: Notion Routine (Python)
+
+on:
+  schedule:
+    # Run near midnight PT; include both to straddle DST
+    - cron: '5 07 * * *'   # ~12:05am PT during PDT
+    - cron: '5 08 * * *'   # ~12:05am PT during PST
+    - cron: '10 07 * * 1'  # weekly (PDT)
+    - cron: '10 08 * * 1'  # weekly (PST)
+  workflow_dispatch:
+
+jobs:
+  daily:
+    if: contains(fromJson('["5 07 * * *","5 08 * * *"]'), github.event.schedule)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+          DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
+          WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
+          TIMEZONE: America/Los_Angeles
+          WEEK_START: '1'
+        run: python routine_tracker.py daily
+
+  weekly:
+    if: contains(fromJson('["10 07 * * 1","10 08 * * 1"]'), github.event.schedule)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+          DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
+          WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
+          TIMEZONE: America/Los_Angeles
+          WEEK_START: '1'
+        run: python routine_tracker.py weekly
