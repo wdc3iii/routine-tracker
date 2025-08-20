@@ -2,54 +2,94 @@ name: Notion Routine (Python)
 
 on:
   schedule:
-    # Run near midnight PT; include both to straddle DST
-    - cron: '5 07 * * *'   # ~12:05am PT during PDT
-    - cron: '5 08 * * *'   # ~12:05am PT during PST
-    - cron: '10 07 * * 1'  # weekly (PDT)
-    - cron: '10 08 * * 1'  # weekly (PST)
+    # Daily ~00:05 America/Los_Angeles (DST-aware via two UTC crons)
+    - cron: '5 7 * * *'   # 00:05 PDT (UTC-7)
+    - cron: '5 8 * * *'   # 00:05 PST (UTC-8)
+    # Weekly (Mon) ~00:10 America/Los_Angeles
+    - cron: '10 7 * * 1'  # 00:10 PDT (UTC-7)
+    - cron: '10 8 * * 1'  # 00:10 PST (UTC-8)
   workflow_dispatch:
+    inputs:
+      which:
+        description: 'Which job to run?'
+        required: true
+        default: 'daily'
+        type: choice
+        options:
+          - daily
+          - weekly
+          - both
+
+concurrency:
+  group: notion-routine
+  cancel-in-progress: false
 
 jobs:
   daily:
-    if: contains(fromJson('["5 07 * * *","5 08 * * *"]'), github.event.schedule)
+    # Run if:
+    # - schedule event AND cron is one of the daily crons
+    # - OR manual dispatch requesting daily or both
+    if: >
+      (github.event_name == 'schedule' &&
+       contains(fromJson('["5 7 * * *","5 8 * * *"]'), github.event.schedule))
+      || (github.event_name == 'workflow_dispatch' &&
+          (inputs.which == 'daily' || inputs.which == 'both'))
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
+      DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
+      WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
+      DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
+      WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
+      DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
+      WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
+      TIMEZONE: ${{ vars.TIMEZONE }}
+      WEEK_START: ${{ vars.WEEK_START }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
-          DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
-          WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
-          DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
-          WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
-          DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
-          WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
-          TIMEZONE: ${{ vars.TIMEZONE }}
-          WEEK_START: ${{ vars.WEEK_START }}
+          cache: 'pip'
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run daily
         run: python routine_tracker.py daily
 
   weekly:
-    if: contains(fromJson('["10 07 * * 1","10 08 * * 1"]'), github.event.schedule)
+    if: >
+      (github.event_name == 'schedule' &&
+       contains(fromJson('["10 7 * * 1","10 8 * * 1"]'), github.event.schedule))
+      || (github.event_name == 'workflow_dispatch' &&
+          (inputs.which == 'weekly' || inputs.which == 'both'))
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
+      DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
+      WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
+      DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
+      WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
+      DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
+      WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
+      TIMEZONE: ${{ vars.TIMEZONE }}
+      WEEK_START: ${{ vars.WEEK_START }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
-      - env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
-          DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
-          WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
-          DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
-          WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
-          DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
-          WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
-          TIMEZONE: ${{ vars.TIMEZONE }}
-          WEEK_START: ${{ vars.WEEK_START }}
+          cache: 'pip'
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run weekly
         run: python routine_tracker.py weekly
