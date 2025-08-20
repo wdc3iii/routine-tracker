@@ -357,38 +357,19 @@ def upsert_weekly_summary_wide(week_start_iso: str, week_end_iso: str, task_stat
 
 # ----------------- Jobs -----------------
 def run_daily():
-    import time
-    t0 = time.perf_counter_ns()
     date_iso = yesterday_iso()
-    t1 = time.perf_counter_ns()
-    print(f"ISO Date Time: {((t1 - t0) / 1_000_000):.2f} ms")
 
     daily_todos = todos_for_section_fast(
         ROUTINE_PAGE_ID,
         DAILY_SECTION_NAME,
         stop_names=[WEEKLY_SECTION_NAME]  # stop when we hit the Weekly section
     )
-    t2 = time.perf_counter_ns()
-    print(f"Getting Todos Time: {((t2 - t1) / 1_000_000):.2f} ms")
-
     task_status = status_map_from_todos(daily_todos)
-    t3 = time.perf_counter_ns()
-    print(f"Mapping Time: {((t3 - t2) / 1_000_000):.2f} ms")
-
-    # ensure_daily_base_props()
-    t4 = time.perf_counter_ns()
-    print(f"Ensure Props Time: {((t4 - t3) / 1_000_000):.2f} ms")
 
     upsert_daily_summary_wide(date_iso, task_status)
-    t5 = time.perf_counter_ns()
-    print(f"Upsert Daily Time: {((t5 - t4) / 1_000_000):.2f} ms")
 
     reset_todos(daily_todos)
-    t6 = time.perf_counter_ns()
-    print(f"Reset Time: {((t6 - t5) / 1_000_000):.2f} ms")
-
     print(f"[daily] {date_iso} tasks={len(task_status)} reset={sum(1 for t in daily_todos if t['to_do'].get('checked'))}")
-    print(f"Total Time: {((t6 - t0) / 1_000_000):.2f} ms")
 
 
 def run_weekly():
