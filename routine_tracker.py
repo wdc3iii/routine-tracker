@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from typing import Dict, List, Tuple
 from functools import lru_cache
 from notion_client.errors import APIResponseError
+import random
+from notion_client.errors import APIResponseError, HTTPResponseError
 
 load_dotenv()  # safe no-op if .env doesn't exist
 
@@ -56,12 +58,36 @@ def yesterday_iso():
 def list_children(block_id: str) -> List[dict]:
     results, start_cursor = [], None
     while True:
-        resp = notion.blocks.children.list(block_id=block_id, start_cursor=start_cursor)
+        # retry loop for a single page of children
+        delay = 0.25
+        for attempt in range(6):  # ~0.25, 0.5, 1.0, 2.0, 4.0, 8.0s (plus jitter)
+            try:
+                resp = notion.blocks.children.list(
+                    block_id=block_id, start_cursor=start_cursor
+                )
+                break  # success
+            except (APIResponseError, HTTPResponseError) as e:
+                # Notion sometimes throws 429 (rate limit) or 500/502/503/504
+                status = getattr(e, "status", None) or getattr(
+                    getattr(e, "response", None), "status_code", None
+                )
+                if status in (429, 500, 502, 503, 504):
+                    time.sleep(delay + random.uniform(0, 0.2))
+                    delay *= 2
+                    # invalidate this page’s cache key if we partially filled
+                    continue
+                # non-retryable
+                raise
+        else:
+            # exhausted retries
+            raise RuntimeError(f"Notion children.list failed after retries for {block_id}")
+
         results.extend(resp.get("results", []))
         if not resp.get("has_more"):
             break
         start_cursor = resp.get("next_cursor")
     return results
+
 
 
 # ---- Fast children cache & selective descent ---
