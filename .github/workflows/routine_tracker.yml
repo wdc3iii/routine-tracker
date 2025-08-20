@@ -35,6 +35,7 @@ jobs:
       || (github.event_name == 'workflow_dispatch' &&
           (inputs.which == 'daily' || inputs.which == 'both'))
     runs-on: ubuntu-latest
+    environment: Notion
     timeout-minutes: 15
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -72,6 +73,7 @@ jobs:
       || (github.event_name == 'workflow_dispatch' &&
           (inputs.which == 'weekly' || inputs.which == 'both'))
     runs-on: ubuntu-latest
+    environment: Notion
     timeout-minutes: 15
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
