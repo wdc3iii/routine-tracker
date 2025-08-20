@@ -21,11 +21,15 @@ jobs:
       - run: pip install -r requirements.txt
       - env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+          ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
           DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
           WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
-          TIMEZONE: America/Los_Angeles
-          WEEK_START: '1'
+          DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
+          WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
+          DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
+          WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          WEEK_START: ${{ vars.WEEK_START }}
         run: python routine_tracker.py daily
 
   weekly:
@@ -39,9 +43,13 @@ jobs:
       - run: pip install -r requirements.txt
       - env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+          ROUTINE_PAGE_ID: ${{ secrets.ROUTINE_PAGE_ID }}
           DAILY_DB_ID: ${{ secrets.DAILY_DB_ID }}
           WEEKLY_DB_ID: ${{ secrets.WEEKLY_DB_ID }}
-          TIMEZONE: America/Los_Angeles
-          WEEK_START: '1'
+          DAILY_SECTION_NAME: ${{ vars.DAILY_SECTION_NAME }}
+          WEEKLY_SECTION_NAME: ${{ vars.WEEKLY_SECTION_NAME }}
+          DAILY_DB_NAME: ${{ vars.DAILY_DB_NAME }}
+          WEEKLY_DB_NAME: ${{ vars.WEEKLY_DB_NAME }}
+          TIMEZONE: ${{ vars.TIMEZONE }}
+          WEEK_START: ${{ vars.WEEK_START }}
         run: python routine_tracker.py weekly
